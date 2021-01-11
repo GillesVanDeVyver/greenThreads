@@ -13,7 +13,7 @@ void *test(void *arg) {
     int loop = 4;
     while (loop > 0) {
         if (flag == id) {
-            printf("Thread %d: %d\n", id, loop);
+            write(1,"Thread %d: %d\n", id, loop,11);
             loop--;
             flag = (id + 1) % 2;
             green_cond_signal(&cond);
