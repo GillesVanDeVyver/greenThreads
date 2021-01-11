@@ -12,7 +12,7 @@
 
 #define STACK_SIZE 4096
 #define LIMIT 100 // Specifying the maximum limit of the queue
-#define PERIOD 100
+#define PERIOD 10
 
 
 static sigset_t block;
@@ -33,6 +33,8 @@ static void init() __attribute__((constructor));
 
 void init() {
     getcontext(&main_cntx);
+    // sigprocmask(SIG_BLOCK, &block, NULL);
+    // sigprocmask(SIG_BLOCK, &block, NULL);
 
     sigemptyset(&block);
     sigaddset(&block, SIGVTALRM);
@@ -55,7 +57,7 @@ void init() {
 
 
 void append(green_t *elememt, green_list_t* list){
-    // sigprocmask(SIG_BLOCK, &block, NULL);
+    sigprocmask(SIG_BLOCK, &block, NULL);
     if (list->rear == LIMIT - 1)
         list->rear = -1;
     
@@ -69,7 +71,7 @@ void append(green_t *elememt, green_list_t* list){
 
 
 green_t *getFirst(green_list_t* list){
-    // sigprocmask(SIG_BLOCK, &block, NULL);
+    sigprocmask(SIG_BLOCK, &block, NULL);
     // printf("gfront %d \n", list->front);
     // printf("grear %d \n", list->rear);
     // int loop;
@@ -82,6 +84,7 @@ green_t *getFirst(green_list_t* list){
         // printf("front == -1 \n");
         // printf("efront %d \n", list->front);
         // printf("erear %d \n", list->rear);
+        // sigprocmask(SIG_UNBLOCK, &block, NULL);
         return NULL;
     }
     else{
@@ -91,6 +94,7 @@ green_t *getFirst(green_list_t* list){
             list->front = -1;
         list->front++;
         // printf("%p first\n", first);
+        // sigprocmask(SIG_UNBLOCK, &block, NULL);
         return first;
     }
     // sigprocmask(SIG_UNBLOCK, &block, NULL);
@@ -99,13 +103,12 @@ green_t *getFirst(green_list_t* list){
 
 
 void green_thread() {
-    // sigprocmask(SIG_BLOCK, &block, NULL);
-
     sigprocmask(SIG_BLOCK, &block, NULL);
     green_t *this = running;
     sigprocmask(SIG_UNBLOCK, &block, NULL);
 
-    void *result = (*this->fun)(this->arg);
+    // void *result = (*this->fun)(this->arg);
+    (*this->fun)(this->arg);
 
     sigprocmask(SIG_BLOCK, &block, NULL);
 
@@ -114,7 +117,7 @@ void green_thread() {
     append(this->join, &queue);
     // sigprocmask(SIG_BLOCK, &block, NULL);
     // save result of exection
-    this->retval = result;
+    // this->retval = result;
 
     // we're a zombie
     this->zombie = TRUE;
@@ -130,57 +133,49 @@ void green_thread() {
 }
 
 int green_yield() {
-    // sigprocmask(SIG_BLOCK, &block, NULL);
+    sigprocmask(SIG_BLOCK, &block, NULL);
     green_t *susp = running;
     // add susp to ready queue
     append(susp,&queue);
-    // sigprocmask(SIG_BLOCK, &block, NULL);
     // select the next thread for execution
     green_t* next = getFirst(&queue);
-    // sigprocmask(SIG_BLOCK, &block, NULL);
     running = next;
-    // sigprocmask(SIG_UNBLOCK, &block, NULL);
     swapcontext(susp->context, next->context);
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
 
 int green_join(green_t *thread, void **res) {
-    sigprocmask(SIG_UNBLOCK, &block, NULL);
+    sigprocmask(SIG_BLOCK, &block, NULL);
 
     if (!thread->zombie){
-        sigprocmask(SIG_UNBLOCK, &block, NULL);
         green_t *susp = running;
         // add as joining thread>
         thread->join = susp;
 
         // select the next thread for execution
         green_t* next = getFirst(&queue);
-        // sigprocmask(SIG_BLOCK, &block, NULL);
         running = next;
         swapcontext(susp->context, next->context);
-        sigprocmask(SIG_UNBLOCK, &block, NULL);
+        // sigprocmask(SIG_BLOCK, &block, NULL);
 
     }
-
-    // sigprocmask(SIG_BLOCK, &block, NULL);
-
 
     // collect result
 
 
-    res = (thread->retval);
+    // res = (thread->retval);
 
     // free context
 
-    
-    free(thread->context);
-    // sigprocmask(SIG_UNBLOCK, &block, NULL);
+    // free(thread->context);
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
 
 
 int green_create(green_t *new, void *(*fun)(void*), void *arg) {
-    // sigprocmask(SIG_BLOCK, &block, NULL);
+    sigprocmask(SIG_BLOCK, &block, NULL);
 
     ucontext_t *cntx = (ucontext_t *) malloc(sizeof(ucontext_t));
     getcontext(cntx);
@@ -189,7 +184,8 @@ int green_create(green_t *new, void *(*fun)(void*), void *arg) {
     cntx->uc_stack.ss_sp = stack;
     cntx->uc_stack.ss_size = STACK_SIZE;
     makecontext(cntx, green_thread, 0);
-
+    sigprocmask(SIG_BLOCK, &block, NULL);
+    
     new->context = cntx;
     new->fun = fun;
     new->arg = arg;
@@ -200,13 +196,13 @@ int green_create(green_t *new, void *(*fun)(void*), void *arg) {
 
     // add new to the ready queue
     append(new,&queue);
-    // sigprocmask(SIG_UNBLOCK, &block, NULL);
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
 
 
 void green_cond_init(green_cond_t* cond){
-    
+    sigprocmask(SIG_BLOCK, &block, NULL);
 
     green_t *arrlist = (green_t *)malloc(LIMIT*sizeof(green_t *));
 
@@ -220,29 +216,28 @@ void green_cond_init(green_cond_t* cond){
     newSuspList->front = -1;
     newSuspList->rear = -1;
     newSuspList->size = LIMIT;
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
 }
 
 void green_cond_wait(green_cond_t* cond){
-    // sigprocmask(SIG_BLOCK, &block, NULL);
+    sigprocmask(SIG_BLOCK, &block, NULL);
     struct green_list_t* currSuspList = cond->suspList;
     
     green_t *susp = running;
     // add susp to suspList queue
 
     append(susp,currSuspList);
-    // sigprocmask(SIG_BLOCK, &block, NULL);
     // select the next thread for execution
     green_t* next = getFirst(&queue);
-    // sigprocmask(SIG_BLOCK, &block, NULL);
 
     running = next;
-    // sigprocmask(SIG_UNBLOCK, &block, NULL);
+    
     swapcontext(susp->context, next->context);
-
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
 }
 
 void green_cond_signal(green_cond_t* cond){
-    // sigprocmask(SIG_BLOCK, &block, NULL);
+    sigprocmask(SIG_BLOCK, &block, NULL);
     if (cond->suspList!=NULL){
         green_t* woken = getFirst(cond->suspList);
         // sigprocmask(SIG_BLOCK, &block, NULL);
@@ -251,13 +246,12 @@ void green_cond_signal(green_cond_t* cond){
             // sigprocmask(SIG_BLOCK, &block, NULL);
         }
     }
-    // sigprocmask(SIG_BLOCK, &block, NULL);
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
 }
 
 void timer_handler (int sig) {
-    // printf("timer handler \n"); => crashes
-    write(1, "timer handler\n",14);
     sigprocmask(SIG_BLOCK, &block, NULL);
+    write(1, "timer handler\n",14);
     green_t *susp = running;
 
     //Add the running to the ready queue
@@ -266,11 +260,12 @@ void timer_handler (int sig) {
     //Find the next thread for execution
     green_t* next = getFirst(&queue);
     running = next;
-    sigprocmask(SIG_UNBLOCK, &block, NULL);
     swapcontext(susp->context, next->context);
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
 }
 
 int green_mutex_init(green_mutex_t *mutex) {
+    sigprocmask(SIG_BLOCK, &block, NULL);
     mutex->taken = FALSE;
 
     green_t *arrlist = (green_t *)malloc(LIMIT*sizeof(green_t *));
@@ -285,6 +280,7 @@ int green_mutex_init(green_mutex_t *mutex) {
     newSuspList->front = -1;
     newSuspList->rear = -1;
     newSuspList->size = LIMIT;
+    sigprocmask(SIG_UNBLOCK, &block, NULL);
 }
 
 
@@ -304,13 +300,14 @@ int green_mutex_lock (green_mutex_t *mutex) {
     green_t* next = getFirst(&queue);
     running = next;
     swapcontext(susp->context, next->context);
+    sigprocmask(SIG_BLOCK, &block, NULL);
   }
   else{
     // take the lock
     mutex->taken = TRUE;;
   }
   // unblock
-  sigprocmask(SIG_UNBLOCK, &block, NULL);
+//   sigprocmask(SIG_UNBLOCK, &block, NULL);
   return 0;
 }
 
