@@ -174,8 +174,14 @@ int green_create(green_t *new, void *(*fun)(void*), void *arg) {
 }
 
 
+void green_cond_init(green_cond_t* cond){
 
-// void green_cond_init(green_cond_t* cond){
-//     green_t* arrlist[LIMIT];
-//     cond->suspList = green_t* arrlist[LIMIT];
-// }
+
+    green_t*arrlist = (green_t *)malloc(LIMIT*sizeof(green_t *));
+    struct green_list_t* suspList = cond->suspList;
+
+    suspList->lst = &arrlist;
+    suspList->front = -1;
+    suspList->rear = -1;
+    suspList->size = LIMIT;
+}

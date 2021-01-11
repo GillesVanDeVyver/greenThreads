@@ -11,11 +11,11 @@ typedef struct green_t {
 } green_t;
 
 typedef struct green_cond_t {
-    struct green_t** suspList;
+    struct green_list_t* suspList;
 } green_cond_t;
 
 typedef struct green_list_t {
-    struct green_t** lst;
+    struct green_t* lst;
     int front;
     int rear;
     int size;
