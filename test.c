@@ -6,9 +6,9 @@
 
 void *test(void *arg) {
     int i = *(int*) arg;
-    int loop = 4;
+    int loop = 10;
     while (loop > 0) {
-      // for (int i = 0; i < 100000000; i++);
+      for (int i = 0; i < 100000000; i++);
       printf("thread %d: %d\n", i, loop);
       loop--;
       green_yield();
