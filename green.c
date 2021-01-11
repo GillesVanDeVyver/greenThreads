@@ -178,10 +178,31 @@ void green_cond_init(green_cond_t* cond){
 
 
     green_t*arrlist = (green_t *)malloc(LIMIT*sizeof(green_t *));
+    printf("a");
     struct green_list_t* suspList = cond->suspList;
+    printf("b");
 
     suspList->lst = &arrlist;
     suspList->front = -1;
     suspList->rear = -1;
     suspList->size = LIMIT;
+}
+
+void green_cond_wait(green_cond_t* cond){
+    struct green_list_t* suspList = cond->suspList;
+    
+    green_t *susp = running;
+    // add susp to suspList queue
+    append(susp,suspList);
+
+    // select the next thread for execution
+    green_t* next = getFirst(&queue);
+
+    running = next;
+    swapcontext(susp->context, next->context);
+}
+
+void green_cond_signal(green_cond_t* cond){
+    green_t* woken = getFirst(&queue);
+    append(woken,&queue);
 }

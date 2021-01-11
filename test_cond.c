@@ -1,9 +1,9 @@
-/*
-    Old test from before the conditon wait was changed.
-*/
-#include <stdio.h>
 
+#include <stdio.h>
+#include <ucontext.h>
+#include <unistd.h>
 #include "green.h"
+#include <stdlib.h> 
 
 static green_cond_t cond;
 static int flag = 0;
@@ -18,7 +18,7 @@ void *test(void *arg) {
             flag = (id + 1) % 3;
             green_cond_signal(&cond);
         } else {
-            green_cond_wait(&cond, &cond_mutex);
+            green_cond_wait(&cond);
         }
     }
 }
@@ -27,19 +27,23 @@ void *test(void *arg) {
     Test the conditon part of the seminar
 */
 int main () {
-  green_t g0, g1, g2;
-  int a0 = 0;
-  int a1 = 1;
-  int a2 = 2;
+    printf("e");
 
-  green_cond_init(&cond);
-  green_create(&g0, test_cond, &a0);
-  green_create(&g1, test_cond, &a1);
-  green_create(&g2, test_cond, &a2);
-  green_join(&g0);
-  green_join(&g1);
-  green_join(&g2);
-  printf("Test of condition is done.\n");
+    green_t g0, g1, g2;
+    int a0 = 0;
+    int a1 = 1;
+    int a2 = 2;
 
-  return 0;
+    printf("c");
+    green_cond_init(&cond);
+    printf("d");
+    green_create(&g0, test, &a0);
+    green_create(&g1, test, &a1);
+    green_create(&g2, test, &a2);
+    green_join(&g0,NULL);
+    green_join(&g1,NULL);
+    green_join(&g2,NULL);
+    printf("Test of condition is done.\n");
+
+    return 0;
 }

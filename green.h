@@ -15,7 +15,7 @@ typedef struct green_cond_t {
 } green_cond_t;
 
 typedef struct green_list_t {
-    struct green_t* lst;
+    struct green_t** lst;
     int front;
     int rear;
     int size;
@@ -24,3 +24,7 @@ typedef struct green_list_t {
 int green_create(green_t *thread, void *(*fun)(void*), void *arg);
 int green_yield();
 int green_join(green_t *thread, void **res);
+
+void green_cond_init(green_cond_t* cond);
+void green_cond_wait(green_cond_t* cond);
+void green_cond_signal(green_cond_t* cond);
