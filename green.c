@@ -101,7 +101,6 @@ void green_thread() {
 
 
     void *result = (*this->fun)(this->arg);
-    sigprocmask(SIG_BLOCK, &block, NULL);
 
     // Place waiting (joining) thread in ready queue
    append(this->join, &queue);
@@ -117,14 +116,12 @@ void green_thread() {
 
     running = next;
     setcontext(next->context);
-    sigprocmask(SIG_UNBLOCK, &block, NULL);
 
 }
 
 int green_yield() {
     green_t *susp = running;
     // add susp to ready queue
-    sigprocmask(SIG_BLOCK, &block, NULL);
     append(susp,&queue);
 
     // select the next thread for execution
@@ -132,7 +129,6 @@ int green_yield() {
 
     running = next;
     swapcontext(susp->context, next->context);
-    sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
 
@@ -140,7 +136,6 @@ int green_join(green_t *thread, void **res) {
 
 
     if (!thread->zombie){
-        sigprocmask(SIG_BLOCK, &block, NULL);
         green_t *susp = running;
         // add as joining thread>
         thread->join = susp;
@@ -150,7 +145,6 @@ int green_join(green_t *thread, void **res) {
         running = next;
 
         swapcontext(susp->context, next->context);
-        sigprocmask(SIG_BLOCK, &block, NULL);
 
     }
 
@@ -189,9 +183,7 @@ int green_create(green_t *new, void *(*fun)(void*), void *arg) {
     new->zombie = FALSE;
 
     // add new to the ready queue
-    sigprocmask(SIG_BLOCK, &block, NULL);
     append(new,&queue);
-    sigprocmask(SIG_UNBLOCK, &block, NULL);
     return 0;
 }
 
