@@ -10,7 +10,7 @@
 #define TRUE 1
 
 #define STACK_SIZE 4096
-#define LIMIT 10 // Specifying the maximum limit of the queue
+#define LIMIT 100 // Specifying the maximum limit of the queue
 
 
 static ucontext_t main_cntx = {0};
@@ -34,13 +34,7 @@ void init() {
 
 
 void append(green_t *elememt, green_list_t* list){
-    // printf("afront %d \n", front);
-    // printf("arear %d \n", rear);
-    // int loop;
-    // for(loop = 0; loop < 10; loop++){
-    //     // printf("loop %d \n", loop);
-    //     printf("%p \n", queue[loop]);
-    // }
+
     if (list->rear == LIMIT - 1)
         list->rear = -1;
     
@@ -49,22 +43,23 @@ void append(green_t *elememt, green_list_t* list){
 
     list->rear++;
     list->lst[list->rear] = elememt;
+
 }
 
 
 green_t *getFirst(green_list_t* list){
-    // printf("gfront %d \n", front);
-    // printf("grear %d \n", rear);
+    // printf("gfront %d \n", list->front);
+    // printf("grear %d \n", list->rear);
     // int loop;
-    // for(loop = 0; loop < 10; loop++){
+    // for(loop = 0; loop < 15; loop++){
     //     // printf("loop %d \n", loop);
-    //     printf("%p \n", queue[loop]);
+    //     printf("%p \n", list->lst[loop]);
     // }
 
     if (list->front == - 1){
-        printf("front == -1 \n");
-        printf("efront %d \n", list->front);
-        printf("erear %d \n", list->rear);
+        // printf("front == -1 \n");
+        // printf("efront %d \n", list->front);
+        // printf("erear %d \n", list->rear);
         return NULL;
     }
     else{
@@ -103,10 +98,6 @@ void green_thread() {
 }
 
 int green_yield() {
-    // printf("front %d \n", front);
-    // int loop;
-    // for(loop = 0; loop < 10; loop++)
-    //     printf("%p \n", queue[loop]);
     green_t *susp = running;
     // add susp to ready queue
     append(susp,&queue);
@@ -121,7 +112,10 @@ int green_yield() {
 
 int green_join(green_t *thread, void **res) {
 
+
+
     if (!thread->zombie){
+
         green_t *susp = running;
         // add as joining thread>
         thread->join = susp;
@@ -144,7 +138,7 @@ int green_join(green_t *thread, void **res) {
 
     // free context
 
-
+    
     free(thread->context);
     return 0;
 }
@@ -177,32 +171,44 @@ int green_create(green_t *new, void *(*fun)(void*), void *arg) {
 void green_cond_init(green_cond_t* cond){
 
 
-    green_t*arrlist = (green_t *)malloc(LIMIT*sizeof(green_t *));
-    printf("a");
-    struct green_list_t* suspList = cond->suspList;
-    printf("b");
+    green_t *arrlist = (green_t *)malloc(LIMIT*sizeof(green_t *));
 
-    suspList->lst = &arrlist;
-    suspList->front = -1;
-    suspList->rear = -1;
-    suspList->size = LIMIT;
+
+    struct green_list_t* newSuspList = (green_list_t *)malloc(sizeof(green_list_t));
+    
+    
+    cond->suspList = newSuspList;
+
+    newSuspList->lst = (green_t **)malloc(LIMIT*sizeof(green_t *));
+    newSuspList->front = -1;
+    newSuspList->rear = -1;
+    newSuspList->size = LIMIT;
 }
 
 void green_cond_wait(green_cond_t* cond){
-    struct green_list_t* suspList = cond->suspList;
+    struct green_list_t* currSuspList = cond->suspList;
     
     green_t *susp = running;
     // add susp to suspList queue
-    append(susp,suspList);
 
+    append(susp,currSuspList);
     // select the next thread for execution
     green_t* next = getFirst(&queue);
 
+
     running = next;
+
+
+
     swapcontext(susp->context, next->context);
+
 }
 
 void green_cond_signal(green_cond_t* cond){
-    green_t* woken = getFirst(&queue);
-    append(woken,&queue);
+    if (cond->suspList!=NULL){
+        green_t* woken = getFirst(cond->suspList);
+        if (woken!=NULL){
+            append(woken,&queue);
+        }
+    }
 }

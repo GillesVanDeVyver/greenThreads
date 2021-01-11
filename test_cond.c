@@ -4,9 +4,9 @@
 #include <unistd.h>
 #include "green.h"
 #include <stdlib.h> 
-
-static green_cond_t cond;
-static int flag = 0;
+    
+int flag = 0;
+green_cond_t cond;
 
 void *test(void *arg) {
     int id = *(int *) arg;
@@ -15,7 +15,7 @@ void *test(void *arg) {
         if (flag == id) {
             printf("Thread %d: %d\n", id, loop);
             loop--;
-            flag = (id + 1) % 3;
+            flag = (id + 1) % 2;
             green_cond_signal(&cond);
         } else {
             green_cond_wait(&cond);
@@ -27,23 +27,18 @@ void *test(void *arg) {
     Test the conditon part of the seminar
 */
 int main () {
-    printf("e");
+    green_cond_init(&cond);
 
-    green_t g0, g1, g2;
+    green_t g0, g1;
     int a0 = 0;
     int a1 = 1;
-    int a2 = 2;
 
-    printf("c");
-    green_cond_init(&cond);
-    printf("d");
     green_create(&g0, test, &a0);
     green_create(&g1, test, &a1);
-    green_create(&g2, test, &a2);
-    green_join(&g0,NULL);
-    green_join(&g1,NULL);
-    green_join(&g2,NULL);
-    printf("Test of condition is done.\n");
 
+
+    green_join(&g0, NULL);
+    green_join(&g1, NULL);
+    printf("done\n");
     return 0;
 }
